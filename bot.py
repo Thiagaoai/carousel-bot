@@ -633,13 +633,12 @@ def main():
     if RAILWAY_PUBLIC_DOMAIN:
         # ─── Webhook mode (Railway) ──────────────────────
         webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}/webhook"
-        logger.info(f"🤖 Starting WEBHOOK mode: {webhook_url}")
+        logger.info(f"🤖 Starting WEBHOOK mode: {webhook_url} on port {PORT}")
         app.run_webhook(
             listen="0.0.0.0",
             port=PORT,
             url_path="/webhook",
             webhook_url=webhook_url,
-            secret_token=WEBHOOK_SECRET,
             drop_pending_updates=True,
         )
     else:
