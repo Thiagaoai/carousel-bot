@@ -15,9 +15,7 @@ import os
 import json
 import logging
 import asyncio
-import threading
 from typing import Optional
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup,
     InputMediaPhoto
@@ -95,27 +93,9 @@ TONS = {
 }
 
 
-# ─── Health check server for Railway ─────────────────────────
-class HealthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps({
-            "status": "running",
-            "bot": "carousel-autoposter",
-            "handle": HANDLE
-        }).encode())
-
-    def log_message(self, format, *args):
-        pass  # Suppress health check logs
-
-
-def start_health_server():
-    server = HTTPServer(("0.0.0.0", PORT), HealthHandler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    logger.info(f"Health check server on port {PORT}")
+# ─── Railway domain detection ─────────────────────────────────
+RAILWAY_PUBLIC_DOMAIN = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
+WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "carousel-bot-secret-2026")
 
 
 # ─── Access control ───────────────────────────────────────────
@@ -621,9 +601,6 @@ def main():
         print("   Set it in Railway environment variables.")
         return
 
-    # Start health check server for Railway
-    start_health_server()
-
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
     # Conversation handler for guided carousel creation
@@ -653,11 +630,25 @@ def main():
     ))
     app.add_error_handler(error_handler)
 
-    logger.info(f"🤖 Carousel Bot starting! Handle: {HANDLE}")
-    app.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True,
-    )
+    if RAILWAY_PUBLIC_DOMAIN:
+        # ─── Webhook mode (Railway) ──────────────────────
+        webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}/webhook"
+        logger.info(f"🤖 Starting WEBHOOK mode: {webhook_url}")
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            url_path="/webhook",
+            webhook_url=webhook_url,
+            secret_token=WEBHOOK_SECRET,
+            drop_pending_updates=True,
+        )
+    else:
+        # ─── Polling mode (local dev) ────────────────────
+        logger.info(f"🤖 Starting POLLING mode. Handle: {HANDLE}")
+        app.run_polling(
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True,
+        )
 
 
 if __name__ == "__main__":
