@@ -593,6 +593,19 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Exception while handling update: {context.error}", exc_info=context.error)
 
 
+# ─── Debug: log every incoming update ─────────────────────────
+
+async def log_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Log every update for debugging."""
+    user = update.effective_user
+    chat = update.effective_chat
+    msg = update.message.text if update.message else "(no message)"
+    logger.info(
+        f"📩 UPDATE RECEIVED: user={user.id if user else '?'} "
+        f"chat={chat.id if chat else '?'} text='{msg}'"
+    )
+
+
 # ─── Main ─────────────────────────────────────────────────────
 
 def main():
@@ -603,7 +616,17 @@ def main():
 
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # Conversation handler for guided carousel creation
+    # Group -1: log ALL updates before any handler
+    app.add_handler(MessageHandler(filters.ALL, log_update), group=-1)
+    app.add_handler(CallbackQueryHandler(lambda u, c: logger.info(f"📩 CALLBACK: {u.callback_query.data}"), pattern=".*"), group=-1)
+
+    # Group 0: actual handlers
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_cmd))
+    app.add_handler(CommandHandler("estilos", estilos_cmd))
+    app.add_handler(CommandHandler("status", status_cmd))
+    app.add_handler(CommandHandler("rapido", rapido))
+
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("carrossel", carrossel_start)],
         states={
@@ -616,12 +639,6 @@ def main():
         },
         fallbacks=[CommandHandler("cancel", lambda u, c: ConversationHandler.END)],
     )
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_cmd))
-    app.add_handler(CommandHandler("estilos", estilos_cmd))
-    app.add_handler(CommandHandler("status", status_cmd))
-    app.add_handler(CommandHandler("rapido", rapido))
     app.add_handler(conv_handler)
     app.add_handler(CallbackQueryHandler(post_action, pattern="^post_"))
     app.add_handler(MessageHandler(
@@ -630,20 +647,23 @@ def main():
     ))
     app.add_error_handler(error_handler)
 
+    # ─── Always use webhook on Railway ────────────────────
     if RAILWAY_PUBLIC_DOMAIN:
-        # ─── Webhook mode (Railway) ──────────────────────
-        webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}/webhook"
-        logger.info(f"🤖 Starting WEBHOOK mode: {webhook_url} on port {PORT}")
+        webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}"
+        logger.info(f"🤖 WEBHOOK mode: {webhook_url} port={PORT}")
+        logger.info(f"📋 ENV: RAILWAY_PUBLIC_DOMAIN={RAILWAY_PUBLIC_DOMAIN}")
+        logger.info(f"📋 ENV: TELEGRAM_TOKEN={'set' if TELEGRAM_TOKEN else 'MISSING'}")
+        logger.info(f"📋 ENV: FAL_KEY={'set' if FAL_KEY else 'MISSING'}")
         app.run_webhook(
             listen="0.0.0.0",
             port=PORT,
-            url_path="/webhook",
+            url_path="",
             webhook_url=webhook_url,
             drop_pending_updates=True,
+            allowed_updates=Update.ALL_TYPES,
         )
     else:
-        # ─── Polling mode (local dev) ────────────────────
-        logger.info(f"🤖 Starting POLLING mode. Handle: {HANDLE}")
+        logger.info(f"🤖 POLLING mode. Handle: {HANDLE}")
         app.run_polling(
             allowed_updates=Update.ALL_TYPES,
             drop_pending_updates=True,
