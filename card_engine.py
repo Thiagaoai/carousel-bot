@@ -1,6 +1,6 @@
 """
-Card Engine â Generates 1080x1350 (4:5) carousel PNGs.
-Uses Playwright to render HTML â PNG with premium design.
+Card Engine — Generates 1080x1350 (4:5) carousel PNGs.
+Uses Playwright to render HTML → PNG with premium design.
 """
 
 import os
@@ -61,7 +61,7 @@ class CardEngine:
                 await page.screenshot(path=png_path)
 
                 card_paths.append(png_path)
-                logger.info(f"â Card {i+1}/{total} generated: {png_path}")
+                logger.info(f"✅ Card {i+1}/{total} generated: {png_path}")
 
             await browser.close()
 

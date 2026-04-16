@@ -1,5 +1,5 @@
 """
-Image Generator â fal.ai integration for carousel backgrounds.
+Image Generator — fal.ai integration for carousel backgrounds.
 Supports: watercolor, cinematic, anime, 3D Pixar, dark tech styles.
 """
 
@@ -105,7 +105,7 @@ class ImageGenerator:
                             async with session.get(image_url) as img_resp:
                                 with open(output_path, "wb") as f:
                                     f.write(await img_resp.read())
-                            logger.info(f"â fal.ai image saved: {output_path}")
+                            logger.info(f"✅ fal.ai image saved: {output_path}")
                             return output_path
         else:
             # Sync fallback
@@ -116,7 +116,7 @@ class ImageGenerator:
     def _generate_fal_sync(self, prompt, output_path, url, body, headers):
         """Synchronous fal.ai call."""
         import urllib.request
-        data = json.dumps(body).encode("utf-8")
+        data = json.dumps(body, ensure_ascii=False).encode("utf-8")
         req = urllib.request.Request(url, data=data, headers=headers, method="POST")
         try:
             with urllib.request.urlopen(req, timeout=60) as response:

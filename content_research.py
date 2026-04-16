@@ -1,5 +1,5 @@
 """
-Content Researcher â Tavily API + fallback to web scraping.
+Content Researcher — Tavily API + fallback to web scraping.
 Generates card content, image prompts, and Instagram caption.
 """
 
@@ -54,7 +54,7 @@ class ContentResearcher:
         self.api_key = api_key or os.environ.get("TAVILY_API_KEY", "")
 
     async def research(self, tema: str, tom: str, qtd: int) -> Dict:
-        """Full research pipeline: search â extract â structure cards."""
+        """Full research pipeline: search → extract → structure cards."""
 
         # Step 1: Search for data
         search_results = await self._search(tema)
@@ -67,7 +67,7 @@ class ContentResearcher:
     async def _search(self, tema: str) -> str:
         """Search for real data about the topic."""
         if not self.api_key:
-            logger.warning("No Tavily API key â using built-in knowledge only")
+            logger.warning("No Tavily API key — using built-in knowledge only")
             return ""
 
         url = "https://api.tavily.com/search"
@@ -93,7 +93,7 @@ class ContentResearcher:
                             return f"{answer}\n\n{results_text}"
             else:
                 import urllib.request
-                data = json.dumps(body).encode()
+                data = json.dumps(body, ensure_ascii=False).encode("utf-8")
                 req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
                 with urllib.request.urlopen(req, timeout=30) as resp:
                     result = json.loads(resp.read().decode())
@@ -210,7 +210,7 @@ class ContentResearcher:
             caption += f"{card['caption']}\n\n"
 
         caption += (
-            f"Salva esse post e manda pra alguem que precisa ver isso ð\n\n"
+            f"Salva esse post e manda pra alguem que precisa ver isso 👇\n\n"
             f"#{''.join(tema.split())} #IA #Tecnologia #Inovacao #Produtividade "
             f"#FuturoDoTrabalho #DockPlusAI #ThiagaoAI"
         )

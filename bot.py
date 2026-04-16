@@ -1,5 +1,5 @@
 """
-Carousel Autoposter Bot â Telegram â fal.ai â Postforme.dev
+Carousel Autoposter Bot — Telegram → fal.ai → Postforme.dev
 @thiagaoai
 
 Bot de Telegram que gera carrosseis virais para Instagram:
@@ -30,7 +30,7 @@ from image_gen import ImageGenerator
 from content_research import ContentResearcher
 from poster import PostformeClient
 
-# âââ Config âââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Config ───────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -38,39 +38,39 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 FAL_KEY = os.environ.get("FAL_KEY", "")
 REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_TOKEN", "")
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")
-POSTFORME_API_KEY = os.environ.get("POSTFORME_API_KEY", "pfm_live_GtkPReWPuL65XY9yNsbQM6")
-POSTFORME_SPC_ID = os.environ.get("POSTFORME_SPC_ID", "spc_yHK48v31utAg7B7hphu4")
+POSTFORME_API_KEY = os.environ.get("POSTFORME_API_KEY", "pfm_live_WWvtsC8mroVDc9NH7JySvo")
+POSTFORME_IG_ID = os.environ.get("POSTFORME_IG_ID", "17841400194457065")
 HANDLE = "@thiagaoai"
 
 # Conversation states
 TEMA, TOM, ESTILO, QTD_CARDS, CTA, CONFIRMA = range(6)
 
-# âââ Estilo visual options ââââââââââââââââââââââââââââââââââââ
+# ─── Estilo visual options ────────────────────────────────────
 ESTILOS = {
     "aquarela": {
         "name": "Aquarela + Tech",
         "prompt_suffix": "watercolor painting style, soft flowing colors, artistic brushstrokes, ethereal dreamy atmosphere, teal mint lavender palette",
-        "emoji": "ð¨"
+        "emoji": "🎨"
     },
     "cinematico": {
         "name": "Cinematico Ultra-Realista",
         "prompt_suffix": "cinematic photography, golden hour lighting, photorealistic, dramatic composition, anamorphic lens flare, 8k detailed",
-        "emoji": "ð¬"
+        "emoji": "🎬"
     },
     "anime": {
         "name": "Anime / Manga",
         "prompt_suffix": "anime art style, vibrant colors, dynamic composition, studio ghibli inspired, detailed anime illustration, cel shading",
-        "emoji": "â©ï¸"
+        "emoji": "⛩️"
     },
     "3d_pixar": {
         "name": "3D Pixar / Disney",
         "prompt_suffix": "3D render pixar disney style, warm lighting, soft shadows, friendly character design, octane render, subsurface scattering",
-        "emoji": "â¨"
+        "emoji": "✨"
     },
     "dark_tech": {
         "name": "Dark Tech / Terminal",
         "prompt_suffix": "dark moody tech aesthetic, glowing neon circuits, terminal screen in dark room, electric blue amber lighting, cyberpunk atmosphere",
-        "emoji": "ð»"
+        "emoji": "💻"
     },
 }
 
@@ -82,18 +82,18 @@ TONS = {
 }
 
 
-# âââ Handlers âââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Handlers ─────────────────────────────────────────────────
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Welcome message"""
     await update.message.reply_text(
-        f"ð *Carousel Autoposter Bot*\n\n"
+        f"🚀 *Carousel Autoposter Bot*\n\n"
         f"Eu crio carrosseis virais e posto no Instagram automaticamente.\n\n"
         f"Comandos:\n"
-        f"/carrossel â Criar um novo carrossel (guiado)\n"
-        f"/rapido <tema> â Modo rapido (5 cards, inspiracional)\n"
-        f"/estilos â Ver estilos visuais disponiveis\n"
-        f"/help â Ajuda\n\n"
+        f"/carrossel — Criar um novo carrossel (guiado)\n"
+        f"/rapido <tema> — Modo rapido (5 cards, inspiracional)\n"
+        f"/estilos — Ver estilos visuais disponiveis\n"
+        f"/help — Ajuda\n\n"
         f"Handle: {HANDLE}",
         parse_mode="Markdown"
     )
@@ -101,19 +101,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def estilos_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show available visual styles"""
-    text = "ð¨ *Estilos Visuais Disponiveis:*\n\n"
+    text = "🎨 *Estilos Visuais Disponiveis:*\n\n"
     for key, style in ESTILOS.items():
         text += f"{style['emoji']} *{style['name']}*\n"
     text += "\nEscolha um na hora de criar o carrossel!"
     await update.message.reply_text(text, parse_mode="Markdown")
 
 
-# âââ Conversation: Guided Carousel Creation âââââââââââââââââââ
+# ─── Conversation: Guided Carousel Creation ───────────────────
 
 async def carrossel_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """FASE 1: Ask for topic"""
     await update.message.reply_text(
-        "ð *Vamos criar um carrossel!*\n\n"
+        "📝 *Vamos criar um carrossel!*\n\n"
         "Qual o *tema/assunto*? Me conta em uma frase.\n\n"
         "Exemplo: _Claude Code para desenvolvedores_",
         parse_mode="Markdown"
@@ -126,13 +126,13 @@ async def tema_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["tema"] = update.message.text
 
     keyboard = [
-        [InlineKeyboardButton(f"ð Educativo", callback_data="tom_educativo")],
-        [InlineKeyboardButton(f"ð¥ Provocativo", callback_data="tom_provocativo")],
-        [InlineKeyboardButton(f"ð« Inspiracional", callback_data="tom_inspiracional")],
-        [InlineKeyboardButton(f"âï¸ Tecnico", callback_data="tom_tecnico")],
+        [InlineKeyboardButton(f"📚 Educativo", callback_data="tom_educativo")],
+        [InlineKeyboardButton(f"🔥 Provocativo", callback_data="tom_provocativo")],
+        [InlineKeyboardButton(f"💫 Inspiracional", callback_data="tom_inspiracional")],
+        [InlineKeyboardButton(f"⚙️ Tecnico", callback_data="tom_tecnico")],
     ]
     await update.message.reply_text(
-        f"â Tema: *{update.message.text}*\n\n"
+        f"✅ Tema: *{update.message.text}*\n\n"
         f"Qual o *tom* do carrossel?",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
@@ -155,7 +155,7 @@ async def tom_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )])
 
     await query.edit_message_text(
-        f"â Tom: *{tom.capitalize()}*\n\n"
+        f"✅ Tom: *{tom.capitalize()}*\n\n"
         f"Qual *estilo visual* para as imagens?",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
@@ -178,7 +178,7 @@ async def estilo_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     await query.edit_message_text(
-        f"â Estilo: *{ESTILOS[estilo]['name']}*\n\n"
+        f"✅ Estilo: *{ESTILOS[estilo]['name']}*\n\n"
         f"Quantos *cards*?",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
@@ -202,7 +202,7 @@ async def qtd_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     await query.edit_message_text(
-        f"â Cards: *{qtd}*\n\n"
+        f"✅ Cards: *{qtd}*\n\n"
         f"Qual o *CTA* do ultimo card?",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown"
@@ -226,20 +226,20 @@ async def cta_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     data = context.user_data
     summary = (
-        f"ð *Resumo do Carrossel:*\n\n"
-        f"ð Tema: *{data['tema']}*\n"
-        f"ð­ Tom: *{data['tom'].capitalize()}*\n"
-        f"ð¨ Estilo: *{ESTILOS[data['estilo']]['name']}*\n"
-        f"ð Cards: *{data['qtd_cards']}*\n"
-        f"ð¯ CTA: *{cta}*\n"
-        f"ð¤ Handle: *{HANDLE}*\n\n"
+        f"📋 *Resumo do Carrossel:*\n\n"
+        f"📌 Tema: *{data['tema']}*\n"
+        f"🎭 Tom: *{data['tom'].capitalize()}*\n"
+        f"🎨 Estilo: *{ESTILOS[data['estilo']]['name']}*\n"
+        f"📊 Cards: *{data['qtd_cards']}*\n"
+        f"🎯 CTA: *{cta}*\n"
+        f"👤 Handle: *{HANDLE}*\n\n"
         f"Confirma?"
     )
 
     keyboard = [
         [
-            InlineKeyboardButton("â Gerar!", callback_data="confirma_sim"),
-            InlineKeyboardButton("â Cancelar", callback_data="confirma_nao"),
+            InlineKeyboardButton("✅ Gerar!", callback_data="confirma_sim"),
+            InlineKeyboardButton("❌ Cancelar", callback_data="confirma_nao"),
         ]
     ]
 
@@ -252,12 +252,12 @@ async def cta_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def confirma_gerar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User confirmed â start the full pipeline"""
+    """User confirmed — start the full pipeline"""
     query = update.callback_query
     await query.answer()
 
     if query.data == "confirma_nao":
-        await query.edit_message_text("â Cancelado. Use /carrossel pra comecar de novo.")
+        await query.edit_message_text("❌ Cancelado. Use /carrossel pra comecar de novo.")
         return ConversationHandler.END
 
     data = context.user_data
@@ -267,21 +267,21 @@ async def confirma_gerar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     qtd = data["qtd_cards"]
     cta = data["cta"]
 
-    await query.edit_message_text("â³ *Gerando seu carrossel...*\n\n1/4 ð Pesquisando conteudo...", parse_mode="Markdown")
+    await query.edit_message_text("⏳ *Gerando seu carrossel...*\n\n1/4 🔍 Pesquisando conteudo...", parse_mode="Markdown")
 
     try:
-        # âââ FASE 2: Research âââââââââââââââââââââââââââââ
+        # ─── FASE 2: Research ─────────────────────────────
         researcher = ContentResearcher(api_key=TAVILY_API_KEY)
         research_data = await researcher.research(tema, tom, qtd)
 
         await query.edit_message_text(
-            "â³ *Gerando seu carrossel...*\n\n"
-            "â Pesquisa concluida\n"
-            "2/4 ð¨ Gerando imagens com IA...",
+            "⏳ *Gerando seu carrossel...*\n\n"
+            "✅ Pesquisa concluida\n"
+            "2/4 🎨 Gerando imagens com IA...",
             parse_mode="Markdown"
         )
 
-        # âââ FASE 3: Generate AI images ââââââââââââââââââ
+        # ─── FASE 3: Generate AI images ──────────────────
         img_gen = ImageGenerator(fal_key=FAL_KEY, replicate_token=REPLICATE_API_TOKEN)
         image_paths = await img_gen.generate_batch(
             research_data["image_prompts"],
@@ -290,14 +290,14 @@ async def confirma_gerar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         await query.edit_message_text(
-            "â³ *Gerando seu carrossel...*\n\n"
-            "â Pesquisa concluida\n"
-            "â Imagens geradas\n"
-            "3/4 ð¼ï¸ Montando cards...",
+            "⏳ *Gerando seu carrossel...*\n\n"
+            "✅ Pesquisa concluida\n"
+            "✅ Imagens geradas\n"
+            "3/4 🖼️ Montando cards...",
             parse_mode="Markdown"
         )
 
-        # âââ FASE 4: Build cards âââââââââââââââââââââââââ
+        # ─── FASE 4: Build cards ─────────────────────────
         engine = CardEngine(handle=HANDLE)
         card_paths = await engine.generate_cards(
             cards_data=research_data["cards"],
@@ -307,25 +307,25 @@ async def confirma_gerar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         await query.edit_message_text(
-            "â³ *Gerando seu carrossel...*\n\n"
-            "â Pesquisa concluida\n"
-            "â Imagens geradas\n"
-            "â Cards montados\n"
-            "4/4 âï¸ Escrevendo caption...",
+            "⏳ *Gerando seu carrossel...*\n\n"
+            "✅ Pesquisa concluida\n"
+            "✅ Imagens geradas\n"
+            "✅ Cards montados\n"
+            "4/4 ✍️ Escrevendo caption...",
             parse_mode="Markdown"
         )
 
-        # âââ FASE 5: Generate caption ââââââââââââââââââââ
+        # ─── FASE 5: Generate caption ────────────────────
         caption = research_data["caption"]
 
-        # âââ FASE 6: Send preview to Telegram ââââââââââââ
+        # ─── FASE 6: Send preview to Telegram ────────────
         media_group = []
         for i, path in enumerate(card_paths):
             with open(path, "rb") as f:
                 if i == 0:
                     media_group.append(InputMediaPhoto(
                         media=f.read(),
-                        caption=f"ð¼ï¸ Preview do carrossel ({len(card_paths)} cards)"
+                        caption=f"🖼️ Preview do carrossel ({len(card_paths)} cards)"
                     ))
                 else:
                     media_group.append(InputMediaPhoto(media=f.read()))
@@ -338,7 +338,7 @@ async def confirma_gerar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Send caption preview
         await context.bot.send_message(
             chat_id=query.message.chat_id,
-            text=f"ð *Caption:*\n\n{caption}",
+            text=f"📝 *Caption:*\n\n{caption}",
             parse_mode="Markdown"
         )
 
@@ -348,12 +348,12 @@ async def confirma_gerar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         keyboard = [
             [
-                InlineKeyboardButton("â Postar agora!", callback_data="post_sim"),
-                InlineKeyboardButton("â Descartar", callback_data="post_nao"),
+                InlineKeyboardButton("✅ Postar agora!", callback_data="post_sim"),
+                InlineKeyboardButton("❌ Descartar", callback_data="post_nao"),
             ],
             [
-                InlineKeyboardButton("ð Regenerar imagens", callback_data="post_regen"),
-                InlineKeyboardButton("âï¸ Editar caption", callback_data="post_edit"),
+                InlineKeyboardButton("🔄 Regenerar imagens", callback_data="post_regen"),
+                InlineKeyboardButton("✏️ Editar caption", callback_data="post_edit"),
             ]
         ]
 
@@ -366,12 +366,12 @@ async def confirma_gerar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
         logger.error(f"Error generating carousel: {e}", exc_info=True)
-        await query.edit_message_text(f"â Erro: {str(e)[:200]}\n\nTente novamente com /carrossel")
+        await query.edit_message_text(f"❌ Erro: {str(e)[:200]}\n\nTente novamente com /carrossel")
 
     return ConversationHandler.END
 
 
-# âââ Post approval handler ââââââââââââââââââââââââââââââââââââ
+# ─── Post approval handler ────────────────────────────────────
 
 async def post_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle post approval/rejection"""
@@ -379,20 +379,20 @@ async def post_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     if query.data == "post_nao":
-        await query.edit_message_text("â Descartado. Use /carrossel pra criar outro.")
+        await query.edit_message_text("❌ Descartado. Use /carrossel pra criar outro.")
         return
 
     if query.data == "post_edit":
-        await query.edit_message_text("âï¸ Me manda o novo caption como mensagem de texto:")
+        await query.edit_message_text("✏️ Me manda o novo caption como mensagem de texto:")
         context.user_data["awaiting_caption_edit"] = True
         return
 
     if query.data == "post_regen":
-        await query.edit_message_text("ð Use /carrossel pra gerar com novo estilo.")
+        await query.edit_message_text("🔄 Use /carrossel pra gerar com novo estilo.")
         return
 
     if query.data == "post_sim":
-        await query.edit_message_text("ð¤ *Postando no Instagram...*", parse_mode="Markdown")
+        await query.edit_message_text("📤 *Postando no Instagram...*", parse_mode="Markdown")
 
         try:
             card_paths = context.user_data.get("card_paths", [])
@@ -400,7 +400,7 @@ async def post_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             poster = PostformeClient(
                 api_key=POSTFORME_API_KEY,
-                spc_id=POSTFORME_SPC_ID
+                ig_id=POSTFORME_IG_ID
             )
             result = await poster.post_carousel(card_paths, caption)
 
@@ -408,31 +408,31 @@ async def post_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_message(
                     chat_id=query.message.chat_id,
                     text=(
-                        f"â *CARROSSEL POSTADO!*\n\n"
-                        f"ð Tema: {context.user_data.get('tema', 'N/A')}\n"
-                        f"ð Cards: {len(card_paths)}\n"
-                        f"ð¨ Estilo: {ESTILOS.get(context.user_data.get('estilo', ''), {}).get('name', 'N/A')}\n"
-                        f"ð± Plataforma: Instagram\n"
-                        f"ð¤ Handle: {HANDLE}\n\n"
-                        f"ð Vai bombar!"
+                        f"✅ *CARROSSEL POSTADO!*\n\n"
+                        f"📌 Tema: {context.user_data.get('tema', 'N/A')}\n"
+                        f"📊 Cards: {len(card_paths)}\n"
+                        f"🎨 Estilo: {ESTILOS.get(context.user_data.get('estilo', ''), {}).get('name', 'N/A')}\n"
+                        f"📱 Plataforma: Instagram\n"
+                        f"👤 Handle: {HANDLE}\n\n"
+                        f"🎉 Vai bombar!"
                     ),
                     parse_mode="Markdown"
                 )
             else:
                 await context.bot.send_message(
                     chat_id=query.message.chat_id,
-                    text="â Falha na postagem. Verifique as credenciais do postforme.dev"
+                    text="❌ Falha na postagem. Verifique as credenciais do postforme.dev"
                 )
 
         except Exception as e:
             logger.error(f"Post error: {e}", exc_info=True)
             await context.bot.send_message(
                 chat_id=query.message.chat_id,
-                text=f"â Erro ao postar: {str(e)[:200]}"
+                text=f"❌ Erro ao postar: {str(e)[:200]}"
             )
 
 
-# âââ Quick mode âââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Quick mode ───────────────────────────────────────────────
 
 async def rapido(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Quick mode: /rapido <tema>"""
@@ -450,7 +450,7 @@ async def rapido(update: Update, context: ContextTypes.DEFAULT_TYPE):
     })
 
     await update.message.reply_text(
-        f"â¡ *Modo rapido!*\n\n"
+        f"⚡ *Modo rapido!*\n\n"
         f"Tema: {tema}\n"
         f"5 cards, inspiracional, cinematico\n\n"
         f"Gerando...",
@@ -463,11 +463,11 @@ async def rapido(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # In production, extract pipeline to shared function
 
 
-# âââ Main âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ─── Main ─────────────────────────────────────────────────────
 
 def main():
     if not TELEGRAM_TOKEN:
-        print("â TELEGRAM_TOKEN not set!")
+        print("❌ TELEGRAM_TOKEN not set!")
         print("   Set it in Railway environment variables.")
         return
 
@@ -493,7 +493,7 @@ def main():
     app.add_handler(conv_handler)
     app.add_handler(CallbackQueryHandler(post_action, pattern="^post_"))
 
-    print(f"ð¤ Carousel Bot rodando! Handle: {HANDLE}")
+    print(f"🤖 Carousel Bot rodando! Handle: {HANDLE}")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
