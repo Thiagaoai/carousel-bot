@@ -606,6 +606,13 @@ async def rapido(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await run_pipeline(update.message.chat_id, context, status_message=status_msg)
 
 
+# ─── Error handler ────────────────────────────────────────────
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    """Log errors."""
+    logger.error(f"Exception while handling update: {context.error}", exc_info=context.error)
+
+
 # ─── Main ─────────────────────────────────────────────────────
 
 def main():
@@ -644,9 +651,13 @@ def main():
         filters.TEXT & ~filters.COMMAND,
         caption_edit_handler
     ))
+    app.add_error_handler(error_handler)
 
     logger.info(f"🤖 Carousel Bot starting! Handle: {HANDLE}")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    app.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
+    )
 
 
 if __name__ == "__main__":
