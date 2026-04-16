@@ -1,5 +1,5 @@
 """
-Content Researcher — Tavily API + fallback to web scraping.
+Content Researcher — Tavily API + Perplexity fallback.
 Generates card content, image prompts, and Instagram caption.
 """
 
@@ -18,58 +18,36 @@ except ImportError:
     import urllib.request
 
 
-CARD_STRUCTURE = """
-Based on the research, create a carousel with {qtd} cards about "{tema}".
-Tone: {tom}
-
-Return ONLY valid JSON (no markdown):
-{{
-  "cards": [
-    {{
-      "type": "cover|content|cta",
-      "headline": "MAX 2 LINES UPPERCASE",
-      "caption": "Storytelling caption, 2-3 lines, conversational, with real data",
-      "image_prompt": "English description for AI image generation, cinematic, no text"
-    }}
-  ],
-  "caption": "Full Instagram caption with hook, body, CTA, hashtags",
-  "image_prompts": ["prompt1", "prompt2", ...]
-}}
-
-Rules:
-- Card 1 = cover (hook forte)
-- Cards 2 to {qtd_minus_1} = content (dados reais, insights)
-- Card {qtd} = CTA
-- Headlines: UPPERCASE, max 2 lines, impactful
-- Captions: storytelling, conversational, real data
-- Image prompts: in English, cinematic, NO TEXT in image
-- Instagram caption: hook first line, spacing dots, body, CTA, 5-8 hashtags
-"""
-
-
 class ContentResearcher:
     """Research content and generate card data."""
 
-    def __init__(self, api_key: str = ""):
+    def __init__(self, api_key: str = "", perplexity_key: str = ""):
         self.api_key = api_key or os.environ.get("TAVILY_API_KEY", "")
+        self.perplexity_key = perplexity_key or os.environ.get("PERPLEXITY_API_KEY", "")
 
     async def research(self, tema: str, tom: str, qtd: int) -> Dict:
         """Full research pipeline: search → extract → structure cards."""
-
-        # Step 1: Search for data
         search_results = await self._search(tema)
-
-        # Step 2: Generate structured card content
         cards_data = await self._generate_cards(tema, tom, qtd, search_results)
-
         return cards_data
 
     async def _search(self, tema: str) -> str:
         """Search for real data about the topic."""
-        if not self.api_key:
-            logger.warning("No Tavily API key — using built-in knowledge only")
-            return ""
+        if self.api_key:
+            result = await self._search_tavily(tema)
+            if result:
+                return result
 
+        if self.perplexity_key:
+            result = await self._search_perplexity(tema)
+            if result:
+                return result
+
+        logger.warning("No search API available — using built-in knowledge only")
+        return ""
+
+    async def _search_tavily(self, tema: str) -> str:
+        """Search via Tavily API."""
         url = "https://api.tavily.com/search"
         body = {
             "api_key": self.api_key,
@@ -92,33 +70,71 @@ class ContentResearcher:
                             ])
                             return f"{answer}\n\n{results_text}"
             else:
-                import urllib.request
                 data = json.dumps(body, ensure_ascii=False).encode("utf-8")
                 req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
                 with urllib.request.urlopen(req, timeout=30) as resp:
                     result = json.loads(resp.read().decode())
-                    answer = result.get("answer", "")
-                    return answer
+                    return result.get("answer", "")
         except Exception as e:
-            logger.error(f"Search error: {e}")
+            logger.error(f"Tavily search error: {e}")
+
+        return ""
+
+    async def _search_perplexity(self, tema: str) -> str:
+        """Search via Perplexity API (sonar model)."""
+        url = "https://api.perplexity.ai/chat/completions"
+        body = {
+            "model": "sonar",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a research assistant. Provide factual data, statistics, and insights. Be concise."
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Research '{tema}' and provide: "
+                        f"1. Key statistics and data points (2024-2026) "
+                        f"2. Real examples and case studies "
+                        f"3. Surprising facts or trends "
+                        f"Format as bullet points. Be specific with numbers."
+                    )
+                }
+            ],
+            "max_tokens": 800,
+        }
+        headers = {
+            "Authorization": f"Bearer {self.perplexity_key}",
+            "Content-Type": "application/json",
+        }
+
+        try:
+            if HAS_AIOHTTP:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, json=body, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                        if resp.status == 200:
+                            result = await resp.json()
+                            content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                            logger.info(f"Perplexity research: {len(content)} chars")
+                            return content
+                        else:
+                            text = await resp.text()
+                            logger.error(f"Perplexity error {resp.status}: {text[:200]}")
+            else:
+                data = json.dumps(body, ensure_ascii=False).encode("utf-8")
+                req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    result = json.loads(resp.read().decode())
+                    return result.get("choices", [{}])[0].get("message", {}).get("content", "")
+        except Exception as e:
+            logger.error(f"Perplexity search error: {e}")
 
         return ""
 
     async def _generate_cards(self, tema: str, tom: str, qtd: int, research: str) -> Dict:
-        """Generate structured card content from research.
-
-        This uses a template-based approach. In production, you'd call
-        Claude API here for truly dynamic content generation.
-        For now, returns a well-structured template that the bot enhances.
-        """
-
-        # Generate image prompts based on topic
+        """Generate structured card content from research."""
         image_prompts = self._generate_image_prompts(tema, qtd)
-
-        # Generate card content
         cards = self._generate_card_content(tema, tom, qtd, research)
-
-        # Generate Instagram caption
         caption = self._generate_caption(tema, cards, research)
 
         return {
@@ -145,15 +161,9 @@ class ContentResearcher:
         return base_prompts[:qtd]
 
     def _generate_card_content(self, tema: str, tom: str, qtd: int, research: str) -> List[Dict]:
-        """Generate card headlines and captions.
-
-        NOTE: In the full production version, this calls Claude API
-        to generate dynamic content based on research. This template
-        version provides the structure.
-        """
+        """Generate card headlines and captions."""
         cards = []
 
-        # Card 1: Cover
         cards.append({
             "type": "cover",
             "headline": f"{tema.upper()}\nVAI MUDAR TUDO",
@@ -162,7 +172,6 @@ class ContentResearcher:
             "bg_color_end": "#0f0f23",
         })
 
-        # Content cards
         content_hooks = [
             ("OS NUMEROS\nNAO MENTEM", "Dados reais mostram o impacto direto.\nQuem usa, nao volta atras."),
             ("QUEM JA USA\nTA NA FRENTE", "Empresas de ponta ja adotaram.\nE os resultados falam por si."),
@@ -186,7 +195,6 @@ class ContentResearcher:
                 "bg_color_end": "#0f0f23",
             })
 
-        # CTA card
         cards.append({
             "type": "cta",
             "headline": "VOCE VAI FICAR\nSO OLHANDO?",
@@ -199,14 +207,12 @@ class ContentResearcher:
 
     def _generate_caption(self, tema: str, cards: List[Dict], research: str) -> str:
         """Generate Instagram caption."""
-        # Extract key points from research for caption
         caption = (
             f"{tema} esta transformando o jogo. E os numeros provam.\n"
             f"\n.\n.\n.\n\n"
         )
 
-        # Add content from cards
-        for card in cards[1:-1]:  # Skip cover and CTA
+        for card in cards[1:-1]:
             caption += f"{card['caption']}\n\n"
 
         caption += (

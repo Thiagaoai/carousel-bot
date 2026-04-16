@@ -20,4 +20,8 @@ RUN playwright install chromium
 
 COPY . .
 
+# Health check for Railway
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080')" || exit 1
+
 CMD ["python", "bot.py"]
