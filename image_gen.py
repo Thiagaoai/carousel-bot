@@ -35,24 +35,26 @@ class ImageGenerator:
         prompts: List[str],
         style: str = "cinematico",
         style_suffix: str = "",
-        provider: str = "fal"
+        provider: str = "replicate"
     ) -> List[str]:
-        """Generate a batch of images. Returns list of file paths."""
+        """Generate a batch of images. Returns list of file paths.
+        Provider priority: replicate (primary) → fal.ai (fallback) → placeholder.
+        """
         tasks = []
         for i, prompt in enumerate(prompts):
             full_prompt = f"{prompt}, {style_suffix}, no text, no watermark, no letters, no words"
             output_path = os.path.join(self.output_dir, f"bg_{i+1}.png")
 
-            if provider == "fal" and self.fal_key:
-                tasks.append(self._generate_fal(full_prompt, output_path))
-            elif provider == "replicate" and self.replicate_token:
+            if provider == "replicate" and self.replicate_token:
                 tasks.append(self._generate_replicate(full_prompt, output_path))
+            elif provider == "fal" and self.fal_key:
+                tasks.append(self._generate_fal(full_prompt, output_path))
             else:
-                # Fallback: try fal first, then replicate
-                if self.fal_key:
-                    tasks.append(self._generate_fal(full_prompt, output_path))
-                elif self.replicate_token:
+                # Fallback chain: replicate → fal → placeholder
+                if self.replicate_token:
                     tasks.append(self._generate_replicate(full_prompt, output_path))
+                elif self.fal_key:
+                    tasks.append(self._generate_fal(full_prompt, output_path))
                 else:
                     logger.warning("No image generation API key available!")
                     tasks.append(self._generate_placeholder(output_path))
