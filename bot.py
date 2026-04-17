@@ -457,12 +457,12 @@ def main():
 
     # Webhook (Railway) or Polling (local)
     if RAILWAY_PUBLIC_DOMAIN:
-        webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}"
+        webhook_url = f"https://{RAILWAY_PUBLIC_DOMAIN}/webhook"
         logger.info(f"🤖 WEBHOOK mode: {webhook_url} port={PORT}")
         app.run_webhook(
             listen="0.0.0.0",
             port=PORT,
-            url_path="",
+            url_path="/webhook",
             webhook_url=webhook_url,
             drop_pending_updates=True,
             allowed_updates=Update.ALL_TYPES,
