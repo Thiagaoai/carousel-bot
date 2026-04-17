@@ -1,0 +1,33 @@
+{
+  "name": "images-video-pipeline",
+  "version": "1.0.0",
+  "description": "Automated Reels Video Pipeline for DockPlus AI - 5 businesses, 40 videos/month",
+  "private": true,
+  "scripts": {
+    "screenshot": "node screenshot.js",
+    "test:supabase": "node test-supabase.js",
+    "typecheck": "tsc -p remotion-templates/tsconfig.json --noEmit",
+    "validate": "npm run typecheck && npm run test:supabase",
+    "bot:telegram": "node telegram-carousel-bot.js",
+    "studio": "npx remotion studio remotion-templates/index.ts",
+    "build:video": "npx remotion render remotion-templates/index.ts",
+    "render:before-after": "npx remotion render remotion-templates/index.ts BeforeAfterReveal out/before-after.mp4",
+    "render:showcase": "npx remotion render remotion-templates/index.ts ServiceShowcase out/showcase.mp4",
+    "render:testimonial": "npx remotion render remotion-templates/index.ts TestimonialQuote out/testimonial.mp4",
+    "render:tips": "npx remotion render remotion-templates/index.ts EducationalTips out/tips.mp4",
+    "render:promo": "npx remotion render remotion-templates/index.ts PromoOffer out/promo.mp4"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "dotenv": "^16.4.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "remotion": "^4.0.0",
+    "@remotion/cli": "^4.0.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0",
+    "typescript": "^5.6.0",
+    "@types/react": "^18.3.0"
+  }
+}

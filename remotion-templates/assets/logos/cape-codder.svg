@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <rect width="200" height="200" rx="20" fill="#0055A8"/>
+  <text x="100" y="85" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="#F8A100">CAPE CODDER</text>
+  <text x="100" y="110" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" fill="#fff">Home Improvement</text>
+  <text x="100" y="135" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#E8E8E8">Quality You Can Trust</text>
+</svg>

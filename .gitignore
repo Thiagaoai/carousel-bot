@@ -1,0 +1,16 @@
+.env
+.env.local
+.claude/settings.local.json
+.vscode/
+node_modules/
+entregas/*.png
+entregas/*.jpg
+entregas/*.mp4
+assets/images/**/*.jpg
+assets/images/**/*.png
+remotion-templates/assets/fonts/*.ttf
+remotion-templates/assets/fonts/*.woff2
+out/
+.tmp/
+.DS_Store
+*.log

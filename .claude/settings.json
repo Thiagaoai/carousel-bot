@@ -1,0 +1,16 @@
+{
+  "theme": "dark-blue",
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Edit(.claude/skills/**)",
+      "Edit(.claude/agents/**)",
+      "Edit(.claude/commands/**)",
+      "Edit(entregas/**)",
+      "Edit(remotion-templates/**)",
+      "Read(.env)"
+    ]
+  }
+}

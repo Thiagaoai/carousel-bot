@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <rect width="200" height="200" rx="20" fill="#D4A574"/>
+  <text x="100" y="90" text-anchor="middle" font-family="Georgia,serif" font-size="16" font-weight="bold" fill="#8B6F47">CHEESEBREAD</text>
+  <text x="100" y="115" text-anchor="middle" font-family="Georgia,serif" font-size="13" fill="#fff">Bakery Caf&#xE9;</text>
+  <text x="100" y="140" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#FFE5CC">Cape Cod, MA</text>
+</svg>
