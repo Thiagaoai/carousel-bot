@@ -1,0 +1,132 @@
+# Carousel Autoposter — PRD + SDD
+
+**Owner:** @thiagaoai (DockPlus AI Solutions)  
+**Repo:** carousel-bot  
+**Last reviewed:** 2026-04-17
+
+---
+
+## 1. Product summary
+
+Telegram bot that turns a one-line **brief** into an **Instagram carousel**: research + copy, AI image generation, branded card layout, preview in Telegram, optional caption edit, then publish via **PostForMe** (`postforme.dev`).
+
+---
+
+## 2. Goals
+
+- Reduce time from idea to published carousel.
+- Keep a human-in-the-loop: approve prompts, then approve post (or discard).
+- Run reliably on **Railway** with **webhook** mode when `RAILWAY_PUBLIC_DOMAIN` is set; otherwise **polling** for local dev.
+
+---
+
+## 3. Personas & access
+
+- **Primary user:** operator with Telegram + configured API keys.
+- **Access control:** `.env.example` documents `ALLOWED_USERS`; **not enforced** in `bot.py` as of this doc — any Telegram user who can reach the bot can use it unless added later.
+
+---
+
+## 4. User journey (functional requirements)
+
+1. **`/start`** — Welcome; points to `/novo`, `/historico`, `/status`, `/help`.
+2. **`/help`** — Short flow description.
+3. **`/status`** — Shows configured state for Replicate, fal.ai, Perplexity, PostForMe, IG ID, Supabase (not Tavily in UI today; Tavily still used if key present).
+4. **`/historico`** — Lists the user's last 10 jobs from Supabase with status emoji, date, brief, and Instagram permalink (if posted). No-op message when Supabase is not configured.
+5. **`/novo`** — Conversation starts:
+   - **Brief:** user sends free-text brief (one sentence typical).
+   - Bot runs **content research** (`ContentResearcher`: Tavily + optional Perplexity), builds cards + image prompts + caption; default style **cinematico**.
+   - **Approve prompts:** inline buttons — approve / cancel; style chips (Cinematico, Aquarela, Dark Tech; code also defines anime, 3D Pixar).
+   - On approve: **image batch** via `ImageGenerator` (Replicate primary in call site; fal key for fallback inside module), then **CardEngine** composes final images; Telegram **media group** preview + caption message.
+   - **Post:** Post / Discard / Edit caption; on post, `PostformeClient.post_carousel` uploads carousel.
+
+---
+
+## 5. Non-goals (current scope)
+
+- Multi-tenant SaaS, billing, or analytics dashboard.
+- Non-Instagram channels (unless extended later).
+- Automated posting without explicit user approval in Telegram.
+
+---
+
+## 6. System design (SDD)
+
+### 6.1 High-level architecture
+
+```
+Telegram ↔ python-telegram-bot ↔ [ContentResearcher | ImageGenerator | CardEngine | PostformeClient]
+                ↓                    ↓                   ↓                ↓                ↓
+            SupabaseLog        Tavily/Perplexity    Replicate/fal    Pillow/Playwright   PostForMe API
+                ↓
+           Supabase (carousel_jobs)
+```
+
+Supabase is an **audit/history layer** — the conversation still runs in-memory
+via PTB `context.user_data`. The DB gets a row per `/novo` and receives
+status transitions so `/historico` works and failures are debuggable after
+a Railway restart. When `SUPABASE_URL`/`SUPABASE_KEY` are unset, every DB
+call is a silent no-op.
+
+### 6.2 Modules
+
+| Module | Responsibility |
+|--------|----------------|
+| `bot.py` | Conversation FSM, handlers, webhook vs polling, `post_init` webhook registration |
+| `content_research.py` | Brief → structured research (cards, prompts, caption) |
+| `image_gen.py` | Batch image generation + provider fallback |
+| `card_engine.py` | Overlay text/branding on generated images |
+| `poster.py` | PostForMe client — carousel publish |
+| `supabase_client.py` | `SupabaseLog`: create/update job rows + `/historico` reads |
+
+### 6.3 Configuration (environment)
+
+| Variable | Purpose |
+|----------|---------|
+| `TELEGRAM_TOKEN` | Required — Bot API |
+| `HANDLE` | Brand handle on cards (default `@thiagaoai`) |
+| `FAL_KEY` | fal.ai |
+| `REPLICATE_API_TOKEN` | Replicate |
+| `TAVILY_API_KEY` | Research |
+| `PERPLEXITY_API_KEY` | Optional research |
+| `POSTFORME_API_KEY` / `POSTFORME_IG_ID` | Instagram publish |
+| `SUPABASE_URL` / `SUPABASE_KEY` | Optional — job log + `/historico`. Unset = graceful no-op. |
+| `PORT` | HTTP port (webhook server) |
+| `RAILWAY_PUBLIC_DOMAIN` | If set → webhook URL `https://{domain}` |
+
+### 6.4.1 Database
+
+Schema lives in [`supabase/migrations/001_init.sql`](supabase/migrations/001_init.sql). Apply via the Supabase SQL editor or `supabase db push`.
+
+Status lifecycle:
+```
+researching → prompts_ready → generating_images → awaiting_approval → posting → posted
+                                                                          └→ failed
+                       └→ rejected (user cancelled at prompt stage)
+                                               └→ rejected (user discarded at preview stage)
+```
+
+### 6.4 Runtime
+
+- **Python deps:** `python-telegram-bot[webhooks]`, `aiohttp`, `playwright`, `Pillow` (see `requirements.txt`).
+- **Deploy:** `Dockerfile`, `railway.json` for Railway.
+
+### 6.5 Risks / follow-ups
+
+- **`.env.example` vs `bot.py`:** Example mentions `ALLOWED_USERS` and omits `RAILWAY_PUBLIC_DOMAIN`; align docs with code behavior.
+- **Style buttons:** UI exposes subset of `ESTILOS`; parity or intentional limitation should be documented for UX.
+- **Secrets:** Never commit `.env`; rotate keys if leaked.
+
+---
+
+## 7. Success metrics (suggested)
+
+- End-to-end carousel published in under N minutes (define N for ops).
+- Failure rate on image gen and PostForMe post calls (log-based).
+
+---
+
+## 8. Open questions
+
+- Implement `ALLOWED_USERS` gating in `bot.py` to match `.env.example`?
+- Should `/status` include Tavily and Telegram token presence (masked)?
