@@ -2,64 +2,98 @@ const fs = require('fs');
 const path = require('path');
 
 class HiggsfieldClient {
-  constructor({ apiId, apiKey } = {}) {
+  constructor({ apiId, apiKey, base } = {}) {
     this.apiId = apiId || process.env.HIGGSFIELD_API_ID;
     this.apiKey = apiKey || process.env.HIGGSFIELD_API_KEY;
-    this.base = process.env.HIGGSFIELD_API_BASE || 'https://platform.higgsfield.ai/v1';
+    this.base = base || process.env.HIGGSFIELD_API_BASE || 'https://platform.higgsfield.ai';
   }
 
-  authHeaders() {
-    const headers = { 'Content-Type': 'application/json' };
-    if (this.apiId && this.apiKey) {
-      headers['hf-api-id'] = this.apiId;
-      headers['hf-api-key'] = this.apiKey;
-      headers.Authorization = `Bearer ${this.apiKey}`;
-    } else if (this.apiKey) {
-      headers.Authorization = `Bearer ${this.apiKey}`;
+  authHeader() {
+    if (!this.apiId || !this.apiKey) {
+      throw new Error('HIGGSFIELD_API_ID and HIGGSFIELD_API_KEY must both be set');
     }
-    return headers;
+    return `Key ${this.apiId}:${this.apiKey}`;
   }
 
-  async generateVideo({ prompt, referenceImage, duration = 5, aspectRatio = '9:16', outputPath, motion = 'standard' }) {
-    if (!this.apiKey) throw new Error('HIGGSFIELD_API_KEY not set');
-
-    const create = await fetch(`${this.base}/videos/generate`, {
+  async submit({ modelPath, input }) {
+    const res = await fetch(`${this.base}/${modelPath.replace(/^\//, '')}`, {
       method: 'POST',
-      headers: this.authHeaders(),
-      body: JSON.stringify({
-        prompt,
-        reference_image_url: referenceImage || undefined,
-        duration_seconds: duration,
-        aspect_ratio: aspectRatio,
-        motion_strength: motion,
-      }),
+      headers: {
+        Authorization: this.authHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(input),
     });
 
-    if (!create.ok) {
-      throw new Error(`Higgsfield create failed: ${create.status} ${await create.text()}`);
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Higgsfield submit ${modelPath} failed: ${res.status} ${body.slice(0, 300)}`);
     }
 
-    const { job_id: jobId } = await create.json();
-    const url = await this.pollJob(jobId);
-    return this.downloadTo(url, outputPath);
+    return res.json();
   }
 
-  async pollJob(jobId, { intervalMs = 4000, timeoutMs = 600000 } = {}) {
+  async getRequest(requestId) {
+    const res = await fetch(`${this.base}/requests/${requestId}`, {
+      headers: { Authorization: this.authHeader() },
+    });
+    if (!res.ok) {
+      throw new Error(`Higgsfield status fetch failed: ${res.status} ${await res.text()}`);
+    }
+    return res.json();
+  }
+
+  async poll(requestId, { intervalMs = 4000, timeoutMs = 600000 } = {}) {
     const started = Date.now();
     while (true) {
-      if (Date.now() - started > timeoutMs) throw new Error(`Higgsfield timeout ${jobId}`);
+      if (Date.now() - started > timeoutMs) throw new Error(`Higgsfield timeout ${requestId}`);
       await new Promise((r) => setTimeout(r, intervalMs));
-      const res = await fetch(`${this.base}/jobs/${jobId}`, {
-        headers: this.authHeaders(),
-      });
-      const data = await res.json();
-      if (data.status === 'completed' || data.status === 'succeeded') return data.result_url || data.video_url;
-      if (data.status === 'failed') throw new Error(`Higgsfield failed: ${data.error || 'unknown'}`);
+      const data = await this.getRequest(requestId);
+      const status = (data.status || data.state || '').toLowerCase();
+      if (['completed', 'succeeded', 'success', 'done'].includes(status)) {
+        const url =
+          data.output_url ||
+          data.video_url ||
+          data.result_url ||
+          (Array.isArray(data.outputs) && data.outputs[0]?.url) ||
+          data.result?.url;
+        if (!url) throw new Error(`Higgsfield completed but no output URL: ${JSON.stringify(data).slice(0, 300)}`);
+        return url;
+      }
+      if (['failed', 'error', 'cancelled'].includes(status)) {
+        throw new Error(`Higgsfield ${status}: ${data.error || data.message || 'unknown'}`);
+      }
     }
+  }
+
+  async generateVideo({
+    prompt,
+    referenceImage,
+    outputPath,
+    model = 'higgsfield-ai/soul/standard',
+    aspectRatio = '9:16',
+    resolution = '720p',
+    duration,
+  }) {
+    const input = {
+      prompt,
+      aspect_ratio: aspectRatio,
+      resolution,
+    };
+    if (referenceImage) input.reference_image_url = referenceImage;
+    if (duration) input.duration_seconds = duration;
+
+    const submit = await this.submit({ modelPath: model, input });
+    const requestId = submit.request_id || submit.id;
+    if (!requestId) throw new Error(`Higgsfield submit returned no request_id: ${JSON.stringify(submit).slice(0, 200)}`);
+
+    const url = await this.poll(requestId);
+    return this.downloadTo(url, outputPath);
   }
 
   async downloadTo(url, outputPath) {
     const response = await fetch(url);
+    if (!response.ok) throw new Error(`Higgsfield download failed: ${response.status}`);
     const buffer = Buffer.from(await response.arrayBuffer());
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     fs.writeFileSync(outputPath, buffer);
