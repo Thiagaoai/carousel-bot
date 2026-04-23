@@ -2,9 +2,22 @@ const fs = require('fs');
 const path = require('path');
 
 class HiggsfieldClient {
-  constructor({ apiKey } = {}) {
+  constructor({ apiId, apiKey } = {}) {
+    this.apiId = apiId || process.env.HIGGSFIELD_API_ID;
     this.apiKey = apiKey || process.env.HIGGSFIELD_API_KEY;
     this.base = process.env.HIGGSFIELD_API_BASE || 'https://platform.higgsfield.ai/v1';
+  }
+
+  authHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (this.apiId && this.apiKey) {
+      headers['hf-api-id'] = this.apiId;
+      headers['hf-api-key'] = this.apiKey;
+      headers.Authorization = `Bearer ${this.apiKey}`;
+    } else if (this.apiKey) {
+      headers.Authorization = `Bearer ${this.apiKey}`;
+    }
+    return headers;
   }
 
   async generateVideo({ prompt, referenceImage, duration = 5, aspectRatio = '9:16', outputPath, motion = 'standard' }) {
@@ -12,7 +25,7 @@ class HiggsfieldClient {
 
     const create = await fetch(`${this.base}/videos/generate`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
+      headers: this.authHeaders(),
       body: JSON.stringify({
         prompt,
         reference_image_url: referenceImage || undefined,
@@ -37,7 +50,7 @@ class HiggsfieldClient {
       if (Date.now() - started > timeoutMs) throw new Error(`Higgsfield timeout ${jobId}`);
       await new Promise((r) => setTimeout(r, intervalMs));
       const res = await fetch(`${this.base}/jobs/${jobId}`, {
-        headers: { Authorization: `Bearer ${this.apiKey}` },
+        headers: this.authHeaders(),
       });
       const data = await res.json();
       if (data.status === 'completed' || data.status === 'succeeded') return data.result_url || data.video_url;
