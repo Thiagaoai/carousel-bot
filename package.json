@@ -6,8 +6,9 @@
   "scripts": {
     "screenshot": "node screenshot.js",
     "test:supabase": "node test-supabase.js",
+    "test:carousel": "node test-carousel.js",
     "typecheck": "tsc -p remotion-templates/tsconfig.json --noEmit",
-    "validate": "npm run typecheck && npm run test:supabase",
+    "validate": "npm run typecheck && npm run test:supabase && npm run test:carousel",
     "bot:telegram": "node telegram-carousel-bot.js",
     "studio": "npx remotion studio remotion-templates/index.ts",
     "build:video": "npx remotion render remotion-templates/index.ts",

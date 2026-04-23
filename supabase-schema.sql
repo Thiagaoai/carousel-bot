@@ -61,6 +61,45 @@ CREATE TABLE IF NOT EXISTS agente_dev.budget_log (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
+-- Carousel jobs table (NEW - Telegram carousel workflow)
+CREATE TABLE IF NOT EXISTS agente_dev.carousel_jobs (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa            TEXT NOT NULL,
+  instagram_handle   TEXT NOT NULL,
+  research_context   TEXT,
+  source_urls        JSONB DEFAULT '[]'::jsonb,
+  news_headline      TEXT,
+  news_summary       TEXT,
+  editorial_angle    TEXT,
+  research_provider  TEXT,
+  site_profile       JSONB,
+  content_type       TEXT NOT NULL,
+  image_style        TEXT NOT NULL,
+  card_count         INT NOT NULL CHECK (card_count IN (3, 5, 7)),
+  topic              TEXT,
+  initial_request    TEXT,
+  status             TEXT DEFAULT 'draft',
+  storyboard         JSONB DEFAULT '[]'::jsonb,
+  images             JSONB DEFAULT '[]'::jsonb,
+  cards              JSONB DEFAULT '[]'::jsonb,
+  caption            TEXT,
+  output_dir         TEXT,
+  preview_message_id BIGINT,
+  postforme_id       TEXT,
+  instagram_url      TEXT,
+  error_msg          TEXT,
+  created_at         TIMESTAMPTZ DEFAULT now(),
+  updated_at         TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE agente_dev.carousel_jobs ADD COLUMN IF NOT EXISTS research_context TEXT;
+ALTER TABLE agente_dev.carousel_jobs ADD COLUMN IF NOT EXISTS source_urls JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE agente_dev.carousel_jobs ADD COLUMN IF NOT EXISTS news_headline TEXT;
+ALTER TABLE agente_dev.carousel_jobs ADD COLUMN IF NOT EXISTS news_summary TEXT;
+ALTER TABLE agente_dev.carousel_jobs ADD COLUMN IF NOT EXISTS editorial_angle TEXT;
+ALTER TABLE agente_dev.carousel_jobs ADD COLUMN IF NOT EXISTS research_provider TEXT;
+ALTER TABLE agente_dev.carousel_jobs ADD COLUMN IF NOT EXISTS site_profile JSONB;
+
 -- ============================================
 -- Schema: memoria (agent memory)
 -- ============================================
@@ -98,7 +137,9 @@ VALUES
   ('all-granite', 'All Granite & Stone', 'Countertops / Stone Fabrication',
    '{"primary":"#4A4A4A","secondary":"#8B8B8B","accent":"#D4AF37"}', 'Raleway', 'active'),
   ('dockplus-ai', 'DockPlus AI Solutions', 'AI Automation Agency',
-   '{"primary":"#1E1E2E","secondary":"#00FF00","accent":"#00FFFF"}', 'JetBrains Mono', 'active')
+   '{"primary":"#1E1E2E","secondary":"#00FF00","accent":"#00FFFF"}', 'JetBrains Mono', 'active'),
+  ('thiagaoai', 'Thiago do Carmo', 'Entrepreneurship / AI / Leadership',
+   '{"primary":"#101820","secondary":"#1F5C4C","accent":"#D1A954"}', 'Merriweather', 'active')
 ON CONFLICT (slug) DO NOTHING;
 
 -- ============================================
@@ -109,6 +150,8 @@ CREATE INDEX IF NOT EXISTS idx_videos_status ON agente_dev.videos(status);
 CREATE INDEX IF NOT EXISTS idx_videos_created ON agente_dev.videos(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_budget_mes ON agente_dev.budget_log(mes);
 CREATE INDEX IF NOT EXISTS idx_budget_empresa ON agente_dev.budget_log(empresa);
+CREATE INDEX IF NOT EXISTS idx_carousel_jobs_status ON agente_dev.carousel_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_carousel_jobs_empresa ON agente_dev.carousel_jobs(empresa);
 CREATE INDEX IF NOT EXISTS idx_memoria_temp_agente ON memoria.memoria_temporaria_claude(agente);
 
 -- ============================================
